@@ -2,19 +2,16 @@ package com.beauty.android.reader;
 
 import java.io.IOException;
 
+import com.beauty.android.reader.setting.SettingManager;
 import com.beauty.android.reader.view.Book;
-import com.beauty.android.reader.view.BookModel;
 import com.beauty.android.reader.view.BookPageFactory;
 import com.beauty.android.reader.view.BookView;
 import com.beauty.android.reader.view.BookView.BookViewListener;
 import com.beauty.android.reader.view.PageWidget;
-import com.beauty.android.reader.view.PageWidget.OnCenterClickListener;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
@@ -22,7 +19,6 @@ import android.view.WindowManager;
 import android.view.View.OnClickListener;
 import android.view.Window;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 public class ReadActivity extends Activity implements OnClickListener {
 
@@ -31,6 +27,8 @@ public class ReadActivity extends Activity implements OnClickListener {
     private PageWidget mPageWidget;
 
     private BookView mBookView;
+
+    private Book mBook;
 
     private BookPageFactory mBookPageFactory;
 
@@ -74,31 +72,18 @@ public class ReadActivity extends Activity implements OnClickListener {
         mLoadingView = findViewById(R.id.loading_rl);
         mProgressBar = (ProgressBar) findViewById(R.id.progressbar);
 
-        // mPageWidget = (PageWidget) findViewById(R.id.book_view);
-        // mBookPageFactory = new BookPageFactory(this);
-        // mPageWidget.setBookPageFactory(mBookPageFactory);
-        //
-        // mPageWidget.setOnCenterClickListener(new OnCenterClickListener() {
-        //
-        // @Override
-        // public void onClick() {
-        // onCenterClick();
-        // }
-        // });
-        //
-        Book book = getIntent().getParcelableExtra(INTENT_EXTRA_BOOK);
-        // String path = Environment.getExternalStorageDirectory() +
-        // "/book1.txt";
-        // // mBookPageFactory.openBook(path, 0);
-        //
+        mBook = getIntent().getParcelableExtra(INTENT_EXTRA_BOOK);
+
+        if (mBook == null) {
+            finish();
+        }
+
+        int start = SettingManager.getInstance().getLastReadIndex(mBook.id);
         mBookView = (BookView) findViewById(R.id.book_view);
-        // Book book = new Book();
-        // book.setPath(path);
-        // book.setCharset("GBK");
         mBookView.setBookViewListener(mBookViewListener);
 
         try {
-            mBookView.openBook(book, 0);
+            mBookView.openBook(mBook, start);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -136,8 +121,9 @@ public class ReadActivity extends Activity implements OnClickListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mBookPageFactory != null) {
-            mBookPageFactory.closeBook();
+
+        if (mBook != null) {
+            SettingManager.getInstance().setLastReadIndex(mBook.id, mBookView.getCurrReadIndex());
         }
     }
 

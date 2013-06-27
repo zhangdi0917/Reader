@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Observer;
-import java.util.logging.SimpleFormatter;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -39,7 +37,7 @@ import android.widget.Toast;
  * @author zhangdi
  * 
  */
-public class BookView extends View /* implements PagingInterface */{
+public class BookView extends View {
 
     private BookViewOption mBookViewOption = new BookViewOption();
 
@@ -176,13 +174,17 @@ public class BookView extends View /* implements PagingInterface */{
                 }
             }
         });
-        
+
         // 关闭硬件加速
         ViewUtils.setLayerType(this, ViewUtils.LAYER_TYPE_SOFTWARE, null);
     }
 
     public BookViewOption getBookViewOption() {
         return mBookViewOption;
+    }
+
+    public List<Chapter> getChapters() {
+        return mChapterList;
     }
 
     public void openBook(Book book, int offset) throws IOException {
@@ -203,6 +205,19 @@ public class BookView extends View /* implements PagingInterface */{
 
     public void setBookViewListener(BookViewListener listener) {
         mBookViewListener = listener;
+    }
+
+    public int getCurrReadIndex() {
+        if (mPageList == null || mPageList.size() == 0) {
+            return mStartOffset;
+        }
+        if (mPageIndex < 0) {
+            return mPageList.get(0).start;
+        } else if (mPageIndex >= mPageList.size()) {
+            return mPageList.get(mPageList.size() - 1).start;
+        } else {
+            return mPageList.get(mPageIndex).start;
+        }
     }
 
     @Override
@@ -1067,75 +1082,5 @@ public class BookView extends View /* implements PagingInterface */{
         }
         return str.substring(start);
     }
-
-    // private Handler mHandler = new Handler(Looper.getMainLooper());
-    //
-    // private boolean mIsPaging = false;
-    //
-    // private boolean mHasPageOver = false;
-    //
-    // private List<Page> mPageList = null;
-    //
-    // private List<Page> mTmpPageList = null;
-    //
-    // private int mHasTmpReadLength = 0;
-    //
-    // private static final int TMP_READ_LENGTH = 1024;
-
-    // @Override
-    // public void onStartPage() {
-    // mHandler.post(new Runnable() {
-    // @Override
-    // public void run() {
-    // mIsPaging = true;
-    // }
-    // });
-    // }
-    //
-    // @Override
-    // public void onPageOver() {
-    // mHandler.post(new Runnable() {
-    // @Override
-    // public void run() {
-    // mHasPageOver = true;
-    // mIsPaging = false;
-    // mPageList = mBookModel.getPages();
-    //
-    // if (mPageList == null || mPageList.size() == 0) {
-    // return;
-    // }
-    //
-    // if (mTmpPageList != null && mTmpPageList.size() > 0) {
-    // if (mPageIndex >= 0 && mPageIndex < mTmpPageList.size()) {
-    // Page page = mTmpPageList.get(mPageIndex);
-    // int start = page.start;
-    // for (int i = 0; i < mPageList.size(); i++) {
-    // Page page1 = mPageList.get(i);
-    // if (start >= page1.start && start <= page1.end) {
-    // mPageIndex = i;
-    // break;
-    // }
-    // }
-    // } else {
-    // mPageIndex = 0;
-    // }
-    // } else {
-    // mPageIndex = 0;
-    // }
-    //
-    // invalidate();
-    // }
-    // });
-    // }
-    //
-    // @Override
-    // public void onPageError() {
-    // mHandler.post(new Runnable() {
-    // @Override
-    // public void run() {
-    // mIsPaging = false;
-    // }
-    // });
-    // }
 
 }
