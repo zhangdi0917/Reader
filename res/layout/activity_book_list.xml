@@ -5,7 +5,7 @@
     <RelativeLayout
         android:id="@+id/title_layout"
         android:layout_width="match_parent"
-        android:layout_height="50dip"
+        android:layout_height="48dip"
         android:background="@drawable/title_bg" >
 
         <TextView

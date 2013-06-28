@@ -1,7 +1,7 @@
 /**
  * ViewUtils.java
  */
-package com.beauty.android.reader.view;
+package com.beauty.android.reader.utils;
 
 import java.lang.reflect.Method;
 

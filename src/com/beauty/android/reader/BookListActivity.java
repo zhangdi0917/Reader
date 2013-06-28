@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.beauty.android.reader.setting.SettingManager;
 import com.beauty.android.reader.view.Book;
+import com.umeng.analytics.MobclickAgent;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -29,8 +30,6 @@ public class BookListActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_book_list);
 
-        SettingManager.getInstance().init(getApplicationContext());
-
         loadData();
 
         mListView = (ListView) findViewById(R.id.listview);
@@ -49,6 +48,7 @@ public class BookListActivity extends Activity {
             }
 
         });
+
     }
 
     private void loadData() {
@@ -76,6 +76,24 @@ public class BookListActivity extends Activity {
                 "《西游记》是一部中国古典神魔小说，为中国“四大名著”之一。成书于16世纪明朝中叶，是最优秀的神话小说，也是一部群众创作和文人创作相结合的作品。《西游记》主要描写的是孙悟空保唐僧西天取经，历经九九八十一难的故事。",
                 "xiyouji.txt", "GBK");
         mBookList.add(book3);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MobclickAgent.onResume(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        MobclickAgent.onPause(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        MobclickAgent.flush(this);
     }
 
 }

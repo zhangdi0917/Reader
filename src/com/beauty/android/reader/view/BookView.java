@@ -8,9 +8,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.beauty.android.reader.utils.Toasts;
+import com.beauty.android.reader.utils.ViewUtils;
+
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
@@ -42,8 +44,6 @@ public class BookView extends View {
 
     private BookViewOption mBookViewOption = new BookViewOption();
 
-    private Bitmap mBg;
-
     private Paint mTextPaint;
 
     private Paint mTitlePaint;
@@ -70,7 +70,8 @@ public class BookView extends View {
 
     private int mPageIndex = 0;
 
-    private BookViewListener mBookViewListener;
+    private OnLoadPageListener mOnLoadPageListener;
+    private OnCenterClickListener mOnCenterClickListener;
 
     private Bitmap mCurrBitmap;
     private Bitmap mNextBitmap;
@@ -161,10 +162,6 @@ public class BookView extends View {
 
         mMatrix = new Matrix();
 
-        if (mBookViewOption.bgRes > 0) {
-            mBg = BitmapFactory.decodeResource(getResources(), mBookViewOption.bgRes);
-        }
-
         mObserver = getViewTreeObserver();
         mObserver.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
 
@@ -208,14 +205,22 @@ public class BookView extends View {
 
     }
 
-    public static interface BookViewListener {
+    public static interface OnLoadPageListener {
         public void onLoad();
 
         public void loadOver();
     }
 
-    public void setBookViewListener(BookViewListener listener) {
-        mBookViewListener = listener;
+    public static interface OnCenterClickListener {
+        public void onCenterClick();
+    }
+
+    public void setOnLoadPageListener(OnLoadPageListener listener) {
+        mOnLoadPageListener = listener;
+    }
+
+    public void setOnCenterClickListener(OnCenterClickListener listener) {
+        mOnCenterClickListener = listener;
     }
 
     public int getCurrReadIndex() {
@@ -235,9 +240,8 @@ public class BookView extends View {
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (mBg != null) {
-            canvas.drawBitmap(mBg, null, mDestRect, null);
-            // canvas.drawBitmap(mBg, 0, 0, null);
+        if (mBookViewOption.bgBm != null) {
+            canvas.drawBitmap(mBookViewOption.bgBm, null, mDestRect, null);
         } else {
             canvas.drawColor(mBookViewOption.bgColor);
         }
@@ -252,8 +256,8 @@ public class BookView extends View {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    if (mBookViewListener != null) {
-                        mBookViewListener.onLoad();
+                    if (mOnLoadPageListener != null) {
+                        mOnLoadPageListener.onLoad();
                     }
                     mChapterList = mBookModel.getChapters();
                     mBookSize = mBookModel.getBookSize();
@@ -291,8 +295,8 @@ public class BookView extends View {
                             mTouch.set(-1, -1);
                             invalidate();
 
-                            if (mBookViewListener != null) {
-                                mBookViewListener.loadOver();
+                            if (mOnLoadPageListener != null) {
+                                mOnLoadPageListener.loadOver();
                             }
                         }
                     });
@@ -309,10 +313,14 @@ public class BookView extends View {
 
     }
 
+    public void redraw() {
+        drawCurrPage();
+        invalidate();
+    }
+
     private void drawPage(Canvas canvas, Page page) {
-        if (mBg != null) {
-            canvas.drawBitmap(mBg, null, mDestRect, null);
-            // canvas.drawBitmap(mBg, 0, 0, null);
+        if (mBookViewOption.bgBm != null) {
+            canvas.drawBitmap(mBookViewOption.bgBm, null, mDestRect, null);
         } else {
             canvas.drawColor(mBookViewOption.bgColor);
         }
@@ -365,8 +373,8 @@ public class BookView extends View {
 
                 @Override
                 public void run() {
-                    if (mBookViewListener != null) {
-                        mBookViewListener.onLoad();
+                    if (mOnLoadPageListener != null) {
+                        mOnLoadPageListener.onLoad();
                     }
                     final List<Page> list = readPrePages();
 
@@ -387,8 +395,8 @@ public class BookView extends View {
 
                             invalidate();
 
-                            if (mBookViewListener != null) {
-                                mBookViewListener.loadOver();
+                            if (mOnLoadPageListener != null) {
+                                mOnLoadPageListener.loadOver();
                             }
                         }
                     });
@@ -402,8 +410,8 @@ public class BookView extends View {
 
                 @Override
                 public void run() {
-                    if (mBookViewListener != null) {
-                        mBookViewListener.onLoad();
+                    if (mOnLoadPageListener != null) {
+                        mOnLoadPageListener.onLoad();
                     }
                     final List<Page> list = readNextPages();
 
@@ -421,8 +429,8 @@ public class BookView extends View {
 
                             invalidate();
 
-                            if (mBookViewListener != null) {
-                                mBookViewListener.loadOver();
+                            if (mOnLoadPageListener != null) {
+                                mOnLoadPageListener.loadOver();
                             }
                         }
                     });
@@ -442,8 +450,8 @@ public class BookView extends View {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    if (mBookViewListener != null) {
-                        mBookViewListener.onLoad();
+                    if (mOnLoadPageListener != null) {
+                        mOnLoadPageListener.onLoad();
                     }
                     final List<Page> list = readNextPages();
 
@@ -465,8 +473,8 @@ public class BookView extends View {
                             mTouch.set(-1, -1);
                             invalidate();
 
-                            if (mBookViewListener != null) {
-                                mBookViewListener.loadOver();
+                            if (mOnLoadPageListener != null) {
+                                mOnLoadPageListener.loadOver();
                             }
                         }
                     });
@@ -490,8 +498,8 @@ public class BookView extends View {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    if (mBookViewListener != null) {
-                        mBookViewListener.onLoad();
+                    if (mOnLoadPageListener != null) {
+                        mOnLoadPageListener.onLoad();
                     }
                     final List<Page> list = readPrePages();
 
@@ -513,8 +521,8 @@ public class BookView extends View {
                             mTouch.set(-1, -1);
                             invalidate();
 
-                            if (mBookViewListener != null) {
-                                mBookViewListener.loadOver();
+                            if (mOnLoadPageListener != null) {
+                                mOnLoadPageListener.loadOver();
                             }
                         }
                     });
@@ -533,6 +541,10 @@ public class BookView extends View {
         return true;
     }
 
+    private int mLastEvent = MotionEvent.ACTION_CANCEL;
+
+    private boolean mIgnoreTouchEvent = false;
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (mBookModel == null) {
@@ -549,43 +561,108 @@ public class BookView extends View {
 
             abortAnimation();
 
-            mTouch.set(x, y);
-            calcCornerXY(x, y);
-
             if (!drawCurrPage()) {
                 return false;
             }
-            if (mCornerX == 0) {
-                if (isFirstPage()) {
-                    mTouch.set(-1, -1);
-                    Toast.makeText(getContext(), "已经是第一页", Toast.LENGTH_SHORT).show();
-                    return false;
-                }
 
-                if (!drawPrePage()) {
-                    return false;
-                }
-            } else if (mCornerX == getWidth()) {
-                if (isLastPage()) {
-                    mTouch.set(-1, -1);
-                    Toast.makeText(getContext(), "已经是最后一页", Toast.LENGTH_SHORT).show();
-                    return false;
-                }
-                if (!drawNextPage()) {
-                    return false;
-                }
-            }
+            mLastEvent = MotionEvent.ACTION_DOWN;
+            mIgnoreTouchEvent = false;
+
+            mTouch.set(x, y);
+
             break;
 
         case MotionEvent.ACTION_MOVE:
-            mTouch.set(event.getX(), event.getY());
-            invalidate();
+            if (mIgnoreTouchEvent) {
+                return false;
+            }
+
+            x = event.getX();
+            y = event.getY();
+            if (Math.abs(x - mTouch.x) > 10) {
+                if (mLastEvent == MotionEvent.ACTION_DOWN) {
+                    mLastEvent = MotionEvent.ACTION_MOVE;
+                    calcCornerXY(x - mTouch.x, y);
+                    if (mCornerX == 0) {
+                        if (isFirstPage()) {
+                            Toasts.getInstance(getContext()).show("已经是第一页", Toast.LENGTH_SHORT);
+                            mIgnoreTouchEvent = true;
+                            reset();
+                            return false;
+                        }
+
+                        if (!drawPrePage()) {
+                            mIgnoreTouchEvent = true;
+                            return false;
+                        }
+                        invalidate();
+                    } else if (mCornerX == getWidth()) {
+                        if (isLastPage()) {
+                            Toasts.getInstance(getContext()).show("已经是最后一页", Toast.LENGTH_SHORT);
+                            mIgnoreTouchEvent = true;
+                            reset();
+                            return false;
+                        }
+                        if (!drawNextPage()) {
+                            mIgnoreTouchEvent = true;
+                            return false;
+                        }
+                        invalidate();
+                    }
+                }
+                mLastEvent = MotionEvent.ACTION_MOVE;
+
+                mTouch.set(event.getX(), event.getY());
+                invalidate();
+            }
             break;
 
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_CANCEL:
+            if (mIgnoreTouchEvent) {
+                return false;
+            }
+
             x = event.getX();
             y = event.getY();
+
+            if (mLastEvent == MotionEvent.ACTION_DOWN) {
+                // on center click
+                if (mOnCenterClickListener != null && x > getWidth() / 3 && x < getWidth() * 2 / 3
+                        && y > getHeight() / 3 && y < getHeight() * 2 / 3) {
+                    mOnCenterClickListener.onCenterClick();
+                    mIgnoreTouchEvent = true;
+                    reset();
+                    return false;
+                }
+
+                calcCornerXY((x >= getWidth() / 2) ? -1 : 1, y);
+                if (mCornerX == 0) {
+                    if (isFirstPage()) {
+                        Toasts.getInstance(getContext()).show("已经是第一页", Toast.LENGTH_SHORT);
+                        mIgnoreTouchEvent = true;
+                        reset();
+                        return false;
+                    }
+
+                    if (!drawPrePage()) {
+                        mIgnoreTouchEvent = true;
+                        return false;
+                    }
+                } else if (mCornerX == getWidth()) {
+                    if (isLastPage()) {
+                        Toasts.getInstance(getContext()).show("已经是最后一页", Toast.LENGTH_SHORT);
+                        mIgnoreTouchEvent = true;
+                        reset();
+                        return false;
+                    }
+                    if (!drawNextPage()) {
+                        mIgnoreTouchEvent = true;
+                        return false;
+                    }
+                }
+            }
+            mLastEvent = MotionEvent.ACTION_UP;
 
             int startX = (int) mTouch.x;
             int startY = (int) mTouch.y;
@@ -632,8 +709,16 @@ public class BookView extends View {
         return false;
     }
 
-    private void calcCornerXY(float x, float y) {
-        if (x >= getWidth() / 2) {
+    private void reset() {
+        abortAnimation();
+        mCornerX = 1;
+        mCornerY = 1;
+        mTouch.set(-1, -1);
+        invalidate();
+    }
+
+    private void calcCornerXY(float dx, float y) {
+        if (dx < 0) {
             mCornerX = getWidth();
         } else {
             mCornerX = 0;

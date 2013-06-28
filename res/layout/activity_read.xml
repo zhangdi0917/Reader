@@ -16,37 +16,29 @@
         android:clickable="true"
         android:visibility="gone" >
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_alignParentBottom="true"
-            android:background="#666666"
-            android:orientation="horizontal" >
+            android:layout_alignParentTop="true"
+            android:background="@drawable/title_bg" >
 
-            <TextView
-                android:id="@+id/progress"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="进度" />
+            <ImageView
+                android:id="@+id/back"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_centerVertical="true"
+                android:scaleType="center"
+                android:src="@drawable/menu_back" />
 
-            <TextView
-                android:id="@+id/brightness"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="夜间" />
-
-            <TextView
-                android:id="@+id/font_size"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="字体" />
-        </LinearLayout>
+            <ImageView
+                android:id="@+id/day_or_night"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:scaleType="center"
+                android:src="@drawable/menu_night" />
+        </RelativeLayout>
     </RelativeLayout>
 
     <RelativeLayout
@@ -61,7 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:background="#666666"
+            android:background="@drawable/loading_bg"
             android:orientation="vertical"
             android:paddingBottom="10dp"
             android:paddingLeft="40dp"
