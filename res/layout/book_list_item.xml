@@ -2,8 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="15dp"
-    android:paddingBottom="15dp" >
+    android:paddingBottom="15dp"
+    android:paddingTop="15dp" >
 
     <ImageView
         android:id="@+id/book_cover"
@@ -11,7 +11,7 @@
         android:layout_height="100dp"
         android:layout_marginLeft="15dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/book0" />
+        android:src="@drawable/default_cover" />
 
     <TextView
         android:id="@+id/book_name"
@@ -23,7 +23,6 @@
         android:layout_marginRight="15dp"
         android:layout_toRightOf="@id/book_cover"
         android:singleLine="true"
-        android:text="倚天屠龙记"
         android:textColor="#333333"
         android:textSize="15sp" />
 
@@ -35,10 +34,9 @@
         android:layout_below="@id/book_name"
         android:layout_marginLeft="12dp"
         android:layout_marginRight="15dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="7dp"
         android:layout_toRightOf="@id/book_cover"
         android:singleLine="true"
-        android:text="金庸"
         android:textColor="#666666"
         android:textSize="12sp" />
 
@@ -51,9 +49,9 @@
         android:layout_below="@id/book_author"
         android:layout_marginLeft="12dp"
         android:layout_marginRight="15dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="9dp"
         android:layout_toRightOf="@id/book_cover"
-        android:text="张无忌跟一大群美女"
+        android:maxLines="3"
         android:textColor="#666666"
         android:textSize="12sp" />
 

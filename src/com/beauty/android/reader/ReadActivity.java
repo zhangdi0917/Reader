@@ -4,16 +4,15 @@ import java.io.IOException;
 
 import com.beauty.android.reader.setting.SettingManager;
 import com.beauty.android.reader.view.Book;
-import com.beauty.android.reader.view.BookPageFactory;
 import com.beauty.android.reader.view.BookView;
 import com.beauty.android.reader.view.BookView.BookViewListener;
-import com.beauty.android.reader.view.PageWidget;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.View.OnClickListener;
@@ -24,13 +23,9 @@ public class ReadActivity extends Activity implements OnClickListener {
 
     public static final String INTENT_EXTRA_BOOK = "extra_book";
 
-    private PageWidget mPageWidget;
-
     private BookView mBookView;
 
     private Book mBook;
-
-    private BookPageFactory mBookPageFactory;
 
     private View mSettingView;
 
@@ -44,11 +39,13 @@ public class ReadActivity extends Activity implements OnClickListener {
 
     private ProgressBar mProgressBar;
 
-    private boolean mLight = false;
-    private int mLightBgColor = 0xffffffff;
-    private int mDarkBgColor = 0xff000000;
-    private int mLightTextColor = 0xffffff;
-    private int mDarkTextColor = Color.rgb(28, 28, 28);
+    // private boolean mLight = false;
+    // private int mLightBgColor = 0xffffffff;
+    // private int mDarkBgColor = 0xff000000;
+    // private int mLightTextColor = 0xffffff;
+    // private int mDarkTextColor = Color.rgb(28, 28, 28);
+
+    private WakeLock mWakeLock = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +85,9 @@ public class ReadActivity extends Activity implements OnClickListener {
             e.printStackTrace();
         }
 
+        PowerManager powerManager = (PowerManager) this.getSystemService(POWER_SERVICE);
+        mWakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Lock");
+
     }
 
     private Handler mHandler = new Handler(Looper.getMainLooper());
@@ -119,16 +119,28 @@ public class ReadActivity extends Activity implements OnClickListener {
     };
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mWakeLock != null) {
+            mWakeLock.acquire();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mWakeLock != null) {
+            mWakeLock.release();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
 
         if (mBook != null) {
             SettingManager.getInstance().setLastReadIndex(mBook.id, mBookView.getCurrReadIndex());
         }
-    }
-
-    private void onCenterClick() {
-        mSettingView.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -146,17 +158,12 @@ public class ReadActivity extends Activity implements OnClickListener {
     }
 
     private void brightness() {
-        if (mLight) {
-            mLight = false;
-            mBookPageFactory.setBackgroundColor(mDarkBgColor);
-            mBookPageFactory.setTextColor(mLightTextColor);
-            mPageWidget.refresh();
-        } else {
-            mLight = true;
-            mBookPageFactory.setBackgroundColor(mLightBgColor);
-            mBookPageFactory.setTextColor(mDarkTextColor);
-            mPageWidget.refresh();
-        }
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(R.anim.activity_slide_in_from_left, R.anim.activity_slide_out_to_right);
     }
 
 }

@@ -56,6 +56,9 @@ public class BookListAdapter extends BaseAdapter {
         }
         
         Book book = mBookList.get(position);
+        if (book.coverRes > 0) {
+            holder.bookCover.setImageResource(book.coverRes);
+        }
         holder.bookName.setText(book.name);
         holder.bookAuthor.setText(book.author);
         holder.bookDescribe.setText(book.description);

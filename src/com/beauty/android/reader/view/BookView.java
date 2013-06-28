@@ -10,12 +10,14 @@ import java.util.Locale;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.Region;
 import android.graphics.Paint.Align;
 import android.graphics.PointF;
@@ -40,6 +42,8 @@ import android.widget.Toast;
 public class BookView extends View {
 
     private BookViewOption mBookViewOption = new BookViewOption();
+
+    private Bitmap mBg;
 
     private Paint mTextPaint;
 
@@ -90,6 +94,8 @@ public class BookView extends View {
     private ColorMatrixColorFilter mColorMatrixFilter;
     private float[] mMatrixArray = { 0, 0, 0, 0, 0, 0, 0, 0, 1.0f };
     private Matrix mMatrix;
+
+    private Rect mDestRect;
 
     private PointF mTouch = new PointF();
 
@@ -156,6 +162,10 @@ public class BookView extends View {
 
         mMatrix = new Matrix();
 
+        if (mBookViewOption.bgRes > 0) {
+            mBg = BitmapFactory.decodeResource(getResources(), mBookViewOption.bgRes);
+        }
+
         mObserver = getViewTreeObserver();
         mObserver.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
 
@@ -172,6 +182,8 @@ public class BookView extends View {
                     mNextBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                     mNextCanvas = new Canvas(mNextBitmap);
                 }
+
+                mDestRect = new Rect(0, 0, getWidth(), getHeight());
             }
         });
 
@@ -224,8 +236,14 @@ public class BookView extends View {
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (mBookModel == null) {
+        if (mBg != null) {
+            canvas.drawBitmap(mBg, null, mDestRect, null);
+            // canvas.drawBitmap(mBg, 0, 0, null);
+        } else {
             canvas.drawColor(mBookViewOption.bgColor);
+        }
+
+        if (mBookModel == null) {
             return;
         }
 
@@ -288,7 +306,12 @@ public class BookView extends View {
     }
 
     private void drawPage(Canvas canvas, Page page) {
-        canvas.drawColor(mBookViewOption.bgColor);
+        if (mBg != null) {
+            canvas.drawBitmap(mBg, null, mDestRect, null);
+            // canvas.drawBitmap(mBg, 0, 0, null);
+        } else {
+            canvas.drawColor(mBookViewOption.bgColor);
+        }
 
         if (page == null) {
             return;
@@ -902,19 +925,19 @@ public class BookView extends View {
     }
 
     private void releaseUnnecessaryPages() {
-        if (mPageList != null && mPageList.size() > 500) {
+        if (mPageList != null && mPageList.size() > 200) {
             if (mPageIndex <= 0) {
-                mPageList = mPageList.subList(0, 500);
+                mPageList = mPageList.subList(0, 200);
             } else if (mPageIndex >= mPageList.size() - 1) {
-                mPageList = mPageList.subList(mPageList.size() - 500, mPageList.size());
+                mPageList = mPageList.subList(mPageList.size() - 200, mPageList.size());
             } else {
                 int start = 0;
                 int end = mPageList.size();
-                if (mPageList.size() - mPageIndex >= 400) {
-                    end = mPageIndex + 400;
+                if (mPageList.size() - mPageIndex >= 170) {
+                    end = mPageIndex + 170;
                 }
-                if (mPageIndex > 100) {
-                    start = mPageIndex - 100;
+                if (mPageIndex > 30) {
+                    start = mPageIndex - 30;
                 }
                 mPageList = mPageList.subList(start, end);
                 mPageIndex = mPageIndex - start;
@@ -998,7 +1021,6 @@ public class BookView extends View {
 
         int length = buffer.length();
         int index = 0;
-        // int start = startIndex;
 
         Page page = new Page();
         page.start = startIndex;
@@ -1010,53 +1032,47 @@ public class BookView extends View {
                 break;
             }
 
-            index += paragraph.length();
+            int paragLength = paragraph.length();
 
-            // if (paragraph.indexOf("\r\n") != -1) {
-            // paragraph.replaceAll("\r\n", "");
-            // } else if (paragraph.indexOf("\n") != -1) {
-            // paragraph.replaceAll("\n", "");
-            // }
-
-            /*
-             * if (TextUtils.isEmpty(paragraph)) { lines.add(paragraph); } else
-             * {
-             */
             int i = 0;
+            int offset = 0;
+            for (; i < paragLength; i++) {
+                char c = paragraph.charAt(i);
+                if (c > ' ' && c != 12288) {
+                    break;
+                }
+            }
+            paragraph = "        " + paragraph.substring(i);
+            offset = paragraph.length() - paragLength;
+
+            i = 0;
             while (i < paragraph.length()) {
                 int size = mTextPaint.breakText(paragraph, i, paragraph.length(), true, (width
                         - mBookViewOption.leftPadding - mBookViewOption.rightPadding), null);
+                // if size <= offset at first time, the end index will be error
+                if (size <= 0) {
+                    size = 1;
+                }
                 lines.add(paragraph.substring(i, i + size));
                 i += size;
 
                 if (lines.size() >= mLineCount) {
                     page.lines = lines;
+                    page.end = index + i - offset + startIndex;
                     pages.add(page);
 
-                    int start = page.start;
-                    for (String str : lines) {
-                        if (str != null) {
-                            start += str.length();
-                        }
-                    }
-
                     page = new Page();
-                    page.start = start;
+                    page.start = index + i - offset + startIndex;
                     lines = new ArrayList<String>();
                 }
             }
 
+            index += paragLength;
         }
-        // if (lines.size() >= mLineCount) {
-        // Page page = new Page();
-        // page.lines = lines;
-        // pages.add(page);
-        // lines = new ArrayList<String>();
-        // }
-        // }
 
         if (lines.size() > 0) {
             page.lines = lines;
+            page.end = startIndex + length;
             pages.add(page);
         }
 
@@ -1071,7 +1087,7 @@ public class BookView extends View {
      * @return
      */
     private String readParagraph(String str, int start) {
-        int i = str.indexOf("\n\r", start);
+        int i = str.indexOf("\r\n", start);
         if (i >= 0) {
             return str.substring(start, i + 2);
         } else {

@@ -1,5 +1,7 @@
 package com.beauty.android.reader.view;
 
+import com.beauty.android.reader.R;
+
 import android.graphics.Color;
 
 public class BookViewOption {
@@ -23,6 +25,8 @@ public class BookViewOption {
     public int lineSpace = 20;
 
     public int bgColor = Color.rgb(255, 255, 255);
+    
+    public int bgRes = R.drawable.background_1;
     
     public int titleTextSize = 30;
     public int titleTextColor = Color.rgb(66, 66, 66);
