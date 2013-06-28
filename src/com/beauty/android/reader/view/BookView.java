@@ -34,7 +34,6 @@ import android.widget.Scroller;
 import android.widget.Toast;
 
 /**
- * 支持分页、翻页动画
  * 
  * @author zhangdi
  * 
@@ -283,8 +282,13 @@ public class BookView extends View {
                                 mPageList.addAll(list);
                             }
                             mPageIndex = 0;
-                            drawCurrPage();
+                            if (mPageList.size() > 0) {
+                                drawPage(mCurrCanvas, mPageList.get(0));
+                            } else {
+                                drawPage(mCurrCanvas, null);
+                            }
 
+                            mTouch.set(-1, -1);
                             invalidate();
 
                             if (mBookViewListener != null) {
@@ -355,7 +359,7 @@ public class BookView extends View {
         return formatter.format(new Date());
     }
 
-    private void drawCurrPage() {
+    private boolean drawCurrPage() {
         if (mPageIndex < 0) {
             new Thread(new Runnable() {
 
@@ -370,7 +374,7 @@ public class BookView extends View {
                         @Override
                         public void run() {
                             if (list != null && list.size() > 0) {
-                                mPageIndex = list.size() - 1;
+                                mPageIndex = list.size();
                                 mPageList.addAll(0, list);
                                 releaseUnnecessaryPages();
                             } else {
@@ -391,6 +395,8 @@ public class BookView extends View {
 
                 }
             }).start();
+            drawPage(mCurrCanvas, null);
+            return false;
         } else if (mPageIndex > mPageList.size() - 1) {
             new Thread(new Runnable() {
 
@@ -423,16 +429,15 @@ public class BookView extends View {
 
                 }
             }).start();
-        }
-
-        if (mPageIndex >= 0 && mPageIndex < mPageList.size()) {
-            drawPage(mCurrCanvas, mPageList.get(mPageIndex));
-        } else {
             drawPage(mCurrCanvas, null);
+            return false;
+        } else {
+            drawPage(mCurrCanvas, mPageList.get(mPageIndex));
+            return true;
         }
     }
 
-    private void drawNextPage() {
+    private boolean drawNextPage() {
         if (mPageIndex >= mPageList.size() - 1) {
             new Thread(new Runnable() {
                 @Override
@@ -446,14 +451,18 @@ public class BookView extends View {
                         @Override
                         public void run() {
                             if (list != null && list.size() > 0) {
+                                mPageIndex = mPageList.size();
                                 mPageList.addAll(list);
                                 releaseUnnecessaryPages();
                             }
 
-                            if (mPageIndex + 1 >= 0 && mPageIndex + 1 < mPageList.size()) {
-                                drawPage(mNextCanvas, mPageList.get(mPageIndex + 1));
+                            if (mPageIndex >= 0 && mPageIndex < mPageList.size()) {
+                                drawPage(mCurrCanvas, mPageList.get(mPageIndex));
+                            } else {
+                                drawPage(mCurrCanvas, null);
                             }
 
+                            mTouch.set(-1, -1);
                             invalidate();
 
                             if (mBookViewListener != null) {
@@ -464,15 +473,19 @@ public class BookView extends View {
 
                 }
             }).start();
+            drawPage(mNextCanvas, null);
+            return false;
         }
+
         if (mPageIndex + 1 >= 0 && mPageIndex + 1 < mPageList.size()) {
             drawPage(mNextCanvas, mPageList.get(mPageIndex + 1));
         } else {
             drawPage(mNextCanvas, null);
         }
+        return true;
     }
 
-    private void drawPrePage() {
+    private boolean drawPrePage() {
         if (mPageIndex <= 0) {
             new Thread(new Runnable() {
                 @Override
@@ -491,10 +504,13 @@ public class BookView extends View {
                                 releaseUnnecessaryPages();
                             }
 
-                            if (mPageIndex - 1 >= 0 && mPageIndex - 1 < mPageList.size()) {
-                                drawPage(mNextCanvas, mPageList.get(mPageIndex - 1));
+                            if (mPageIndex >= 0 && mPageIndex < mPageList.size()) {
+                                drawPage(mCurrCanvas, mPageList.get(mPageIndex));
+                            } else {
+                                drawPage(mNextCanvas, null);
                             }
 
+                            mTouch.set(-1, -1);
                             invalidate();
 
                             if (mBookViewListener != null) {
@@ -505,6 +521,8 @@ public class BookView extends View {
 
                 }
             }).start();
+            drawPage(mNextCanvas, null);
+            return false;
         }
 
         if (mPageIndex - 1 >= 0 && mPageIndex - 1 < mPageList.size()) {
@@ -512,6 +530,7 @@ public class BookView extends View {
         } else {
             drawPage(mNextCanvas, null);
         }
+        return true;
     }
 
     @Override
@@ -533,21 +552,28 @@ public class BookView extends View {
             mTouch.set(x, y);
             calcCornerXY(x, y);
 
-            drawCurrPage();
+            if (!drawCurrPage()) {
+                return false;
+            }
             if (mCornerX == 0) {
                 if (isFirstPage()) {
                     mTouch.set(-1, -1);
                     Toast.makeText(getContext(), "已经是第一页", Toast.LENGTH_SHORT).show();
                     return false;
                 }
-                drawPrePage();
+
+                if (!drawPrePage()) {
+                    return false;
+                }
             } else if (mCornerX == getWidth()) {
                 if (isLastPage()) {
                     mTouch.set(-1, -1);
                     Toast.makeText(getContext(), "已经是最后一页", Toast.LENGTH_SHORT).show();
                     return false;
                 }
-                drawNextPage();
+                if (!drawNextPage()) {
+                    return false;
+                }
             }
             break;
 
@@ -599,13 +625,7 @@ public class BookView extends View {
     private boolean isLastPage() {
         if (mPageList != null && mPageList.size() > 0 && mPageIndex >= mPageList.size() - 1) {
             Page page = mPageList.get(mPageList.size() - 1);
-            int end = page.start;
-            for (String str : page.lines) {
-                if (str != null) {
-                    end += str.length();
-                }
-            }
-            if (end >= mBookSize) {
+            if (page.end >= mBookSize) {
                 return true;
             }
         }
@@ -925,19 +945,19 @@ public class BookView extends View {
     }
 
     private void releaseUnnecessaryPages() {
-        if (mPageList != null && mPageList.size() > 200) {
+        if (mPageList != null && mPageList.size() > 300) {
             if (mPageIndex <= 0) {
-                mPageList = mPageList.subList(0, 200);
+                mPageList = mPageList.subList(0, 300);
             } else if (mPageIndex >= mPageList.size() - 1) {
-                mPageList = mPageList.subList(mPageList.size() - 200, mPageList.size());
+                mPageList = mPageList.subList(mPageList.size() - 300, mPageList.size());
             } else {
                 int start = 0;
                 int end = mPageList.size();
-                if (mPageList.size() - mPageIndex >= 170) {
-                    end = mPageIndex + 170;
+                if (mPageList.size() - mPageIndex >= 250) {
+                    end = mPageIndex + 250;
                 }
-                if (mPageIndex > 30) {
-                    start = mPageIndex - 30;
+                if (mPageIndex > 50) {
+                    start = mPageIndex - 50;
                 }
                 mPageList = mPageList.subList(start, end);
                 mPageIndex = mPageIndex - start;
@@ -973,12 +993,7 @@ public class BookView extends View {
         int start = 0;
         if (mPageList != null && mPageList.size() > 0) {
             Page lastPage = mPageList.get(mPageList.size() - 1);
-            start = lastPage.start;
-            for (String str : lastPage.lines) {
-                if (!TextUtils.isEmpty(str)) {
-                    start += str.length();
-                }
-            }
+            start = lastPage.end;
         }
         int length = READ_BUFFER_LENGTH;
         if (start + length > mBookSize) {

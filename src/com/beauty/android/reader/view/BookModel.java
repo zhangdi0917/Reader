@@ -16,17 +16,9 @@ public class BookModel {
 
     private Book mBook;
 
-    // private BookView mBookView;
-
-    // private BookViewOption mBookViewOption;
-
-    // private Paint mPaint = new Paint();
-
     private int mBookSize = 0;
 
     private List<Chapter> mChapters = new ArrayList<Chapter>();
-
-    // private List<Page> mPages = new ArrayList<Page>();
 
     public static interface PagingInterface {
         public void onStartPage();
@@ -42,21 +34,11 @@ public class BookModel {
         mBook = book;
 
         breakChapter(book);
-        // mBookView = bookview;
-        // mBookViewOption = mBookView.getBookViewOption();
     }
 
     public List<Chapter> getChapters() {
         return mChapters;
     }
-
-    // public int getChapterCount() {
-    // return mChapters.size();
-    // }
-    //
-    // public List<Page> getPages() {
-    // return mPages;
-    // }
 
     public String read(int offset, int length) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.filename),
@@ -256,8 +238,9 @@ public class BookModel {
     private int mChapterId = 0;
     private int mHasBreakSize = 0;
     private Pattern mPattern = Pattern.compile("^[0-9一二三四五六七八九十百千 ]+$");
-    // private String[] mKeyArray = { "章", "回", "节", "卷", "集", "幕" };
-    private String[] mKeyArray = { "章" };
+    private String[] mKeyArray = { "章", "回" };
+
+    // private String[] mKeyArray = { "章" };
 
     /**
      * 按章节分段
@@ -286,12 +269,12 @@ public class BookModel {
             br.close();
         }
 
-        if (chapters.size() > 0 && chapters.get(0).start > 0) {
-            Chapter chapter = new Chapter();
-            chapter.start = 0;
-            chapter.title = "前言";
-            chapters.add(0, chapter);
-        }
+        // if (chapters.size() > 0 && chapters.get(0).start > 0) {
+        // Chapter chapter = new Chapter();
+        // chapter.start = 0;
+        // chapter.title = "前言";
+        // chapters.add(0, chapter);
+        // }
 
         return chapters;
 
