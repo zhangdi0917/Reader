@@ -10,6 +10,7 @@ import java.util.Locale;
 
 import com.beauty.android.reader.utils.Toasts;
 import com.beauty.android.reader.utils.ViewUtils;
+import com.beauty.android.reader.vo.Book;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -64,7 +65,7 @@ public class BookView extends View {
 
     private int mBookSize = 0;
 
-    private static final int READ_BUFFER_LENGTH = 20480;
+    private static final int READ_BUFFER_LENGTH = 15000;
 
     private List<Page> mPageList = new ArrayList<Page>();
 

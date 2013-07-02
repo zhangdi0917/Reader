@@ -1,10 +1,13 @@
 package com.beauty.android.reader;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
-import com.beauty.android.reader.view.Book;
+import com.beauty.android.reader.vo.Book;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,11 +18,21 @@ import android.widget.TextView;
 public class BookListAdapter extends BaseAdapter {
 
     private Context mContext;
+
     private List<Book> mBookList;
+
+    private List<WeakReference<Bitmap>> mBookCovers = null;
 
     public BookListAdapter(Context context, List<Book> books) {
         mContext = context;
         mBookList = books;
+
+        if (mBookList != null && mBookList.size() > 0) {
+            mBookCovers = new ArrayList<WeakReference<Bitmap>>(books.size());
+            for (Book book : books) {
+                mBookCovers.add(new WeakReference<Bitmap>(book.getCoverBitmap(mContext)));
+            }
+        }
     }
 
     @Override
@@ -54,15 +67,21 @@ public class BookListAdapter extends BaseAdapter {
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
-        
-        Book book = mBookList.get(position);
-        if (book.coverRes > 0) {
-            holder.bookCover.setImageResource(book.coverRes);
+
+        Bitmap cover = mBookCovers.get(position).get();
+        if (cover == null || cover.isRecycled()) {
+            cover = mBookList.get(position).getCoverBitmap(mContext);
+            mBookCovers.set(position, new WeakReference<Bitmap>(cover));
         }
+
+        Book book = mBookList.get(position);
+
+        holder.bookCover.setImageBitmap(cover);
+
         holder.bookName.setText(book.name);
         holder.bookAuthor.setText(book.author);
         holder.bookDescribe.setText(book.description);
-        
+
         return convertView;
     }
 

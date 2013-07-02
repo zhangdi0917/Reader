@@ -9,11 +9,11 @@ import net.youmi.android.spot.SpotManager;
 
 import com.beauty.android.reader.setting.SettingManager;
 import com.beauty.android.reader.utils.NetworkManager;
-import com.beauty.android.reader.view.Book;
 import com.beauty.android.reader.view.BookView;
 import com.beauty.android.reader.view.BookView.OnCenterClickListener;
 import com.beauty.android.reader.view.BookView.OnLoadPageListener;
 import com.beauty.android.reader.view.BookViewOption;
+import com.beauty.android.reader.vo.Book;
 import com.umeng.analytics.MobclickAgent;
 
 import android.app.Activity;

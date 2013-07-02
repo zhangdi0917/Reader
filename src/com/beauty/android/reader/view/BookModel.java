@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.beauty.android.reader.vo.Book;
+
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -26,7 +28,7 @@ public class BookModel {
 
         mBook = book;
 
-        if (mBook == null || TextUtils.isEmpty(mBook.filename)) {
+        if (mBook == null || TextUtils.isEmpty(mBook.file)) {
             mBookSize = 0;
             return;
         }
@@ -34,7 +36,7 @@ public class BookModel {
         BufferedReader br = null;
         char[] buf = new char[4096];
         try {
-            br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.filename), mBook.charset));
+            br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.file), mBook.charset));
             int count = 0;
             while ((count = br.read(buf)) > 0) {
                 mBookSize += count;
@@ -67,8 +69,8 @@ public class BookModel {
         if (offset + length > mBookSize) {
             length = mBookSize - offset;
         }
-        
-        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.filename), mBook.charset));
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.file), mBook.charset));
         char[] buffer = new char[length];
         br.skip(offset);
         br.read(buffer, 0, length);
@@ -275,13 +277,13 @@ public class BookModel {
      * @return
      */
     private List<Chapter> breakChapter(Book book) throws IOException {
-        if (book == null || book.filename == null) {
+        if (book == null || book.file == null) {
             return null;
         }
 
         List<Chapter> chapters = new ArrayList<Chapter>();
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(book.filename), book.charset));
+        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(book.file), book.charset));
         char[] buf = new char[4096];
         int count = 0;
         while ((count = br.read(buf)) > 0) {
