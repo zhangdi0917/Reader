@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 public class BookModel {
 
@@ -20,20 +21,37 @@ public class BookModel {
 
     private List<Chapter> mChapters = new ArrayList<Chapter>();
 
-    public static interface PagingInterface {
-        public void onStartPage();
-
-        public void onPageOver();
-
-        public void onPageError();
-    }
-
-    public BookModel(Context context, Book book) throws IOException {
+    public BookModel(Context context, Book book) {
         mContext = context;
 
         mBook = book;
 
-        breakChapter(book);
+        if (mBook == null || TextUtils.isEmpty(mBook.filename)) {
+            mBookSize = 0;
+            return;
+        }
+
+        BufferedReader br = null;
+        char[] buf = new char[4096];
+        try {
+            br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.filename), mBook.charset));
+            int count = 0;
+            while ((count = br.read(buf)) > 0) {
+                mBookSize += count;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // breakChapter(book);
     }
 
     public List<Chapter> getChapters() {
@@ -41,8 +59,16 @@ public class BookModel {
     }
 
     public String read(int offset, int length) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.filename),
-                mBook.charset));
+        if (offset < 0) {
+            offset = 0;
+        } else if (offset >= mBookSize) {
+            return null;
+        }
+        if (offset + length > mBookSize) {
+            length = mBookSize - offset;
+        }
+        
+        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(mBook.filename), mBook.charset));
         char[] buffer = new char[length];
         br.skip(offset);
         br.read(buffer, 0, length);
@@ -51,13 +77,13 @@ public class BookModel {
         return new String(buffer);
     }
 
-    /**
-     * 分页完成前读取
-     * 
-     * @param start
-     * @param count
-     * @return
-     */
+    // /**
+    // * 分页完成前读取
+    // *
+    // * @param start
+    // * @param count
+    // * @return
+    // */
     // public List<Page> getTmpPages(int start, int count) {
     //
     // List<Page> pages = new ArrayList<Page>();
@@ -255,8 +281,7 @@ public class BookModel {
 
         List<Chapter> chapters = new ArrayList<Chapter>();
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(book.filename),
-                book.charset));
+        BufferedReader br = new BufferedReader(new InputStreamReader(mContext.getAssets().open(book.filename), book.charset));
         char[] buf = new char[4096];
         int count = 0;
         while ((count = br.read(buf)) > 0) {

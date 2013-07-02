@@ -167,19 +167,20 @@ public class BookView extends View {
 
             @Override
             public void onGlobalLayout() {
-                mBookViewOption.width = getWidth();
-                mBookViewOption.height = getHeight();
-
-                if (mCurrCanvas == null) {
+                if (mBookViewOption.width != getWidth() || mBookViewOption.height != getHeight()) {
                     mCurrBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                     mCurrCanvas = new Canvas(mCurrBitmap);
-                }
-                if (mNextCanvas == null) {
                     mNextBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
                     mNextCanvas = new Canvas(mNextBitmap);
-                }
 
-                mDestRect = new Rect(0, 0, getWidth(), getHeight());
+                    mBookViewOption.width = getWidth();
+                    mBookViewOption.height = getHeight();
+                    mDestRect = new Rect(0, 0, getWidth(), getHeight());
+
+                    if (mBook != null) {
+                        openBook(mBook, getCurrReadIndex());
+                    }
+                }
             }
         });
 
@@ -195,14 +196,44 @@ public class BookView extends View {
         return mChapterList;
     }
 
-    public void openBook(Book book, int offset) throws IOException {
+    public void openBook(Book book, int offset) {
         mBook = book;
         mBookModel = new BookModel(getContext(), book);
+        mBookSize = mBookModel.getBookSize();
+
         mStartOffset = offset;
+        mPageIndex = 0;
+        mPageList.clear();
         mWaitPaging = true;
 
         invalidate();
 
+    }
+
+    public void seekTo(int offset) {
+        if (mPageList.size() > 0) {
+            int min = mPageList.get(0).start;
+            int max = mPageList.get(mPageList.size() - 1).end;
+            if (offset >= min && offset < max) {
+                for (int i = 0; i < mPageList.size(); i++) {
+                    Page page = mPageList.get(i);
+                    if (offset >= page.start && offset < page.end) {
+                        mPageIndex = i;
+                        drawCurrPage();
+                        invalidate();
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (mBook != null) {
+            openBook(mBook, offset);
+        }
+    }
+
+    public int getBookSize() {
+        return mBookSize;
     }
 
     public static interface OnLoadPageListener {
@@ -259,11 +290,14 @@ public class BookView extends View {
                     if (mOnLoadPageListener != null) {
                         mOnLoadPageListener.onLoad();
                     }
-                    mChapterList = mBookModel.getChapters();
-                    mBookSize = mBookModel.getBookSize();
 
-                    if (mStartOffset >= mBookSize) {
-                        mStartOffset = mBookSize - 1;
+                    if (mStartOffset < 0) {
+                        mStartOffset = 0;
+                    } else if (mStartOffset >= mBookSize) {
+                        if (mOnLoadPageListener != null) {
+                            mOnLoadPageListener.loadOver();
+                        }
+                        return;
                     }
 
                     int length = READ_BUFFER_LENGTH;
@@ -292,7 +326,7 @@ public class BookView extends View {
                                 drawPage(mCurrCanvas, null);
                             }
 
-                            mTouch.set(-1, -1);
+                            reset();
                             invalidate();
 
                             if (mOnLoadPageListener != null) {
@@ -319,6 +353,10 @@ public class BookView extends View {
     }
 
     private void drawPage(Canvas canvas, Page page) {
+        if (canvas == null) {
+            return;
+        }
+        
         if (mBookViewOption.bgBm != null) {
             canvas.drawBitmap(mBookViewOption.bgBm, null, mDestRect, null);
         } else {
@@ -338,8 +376,7 @@ public class BookView extends View {
         // draw title
         int y = mBookViewOption.topPadding + mBookViewOption.titleTextSize;
         if (mBook != null && mBook.name != null) {
-            int x = (int) (mBookViewOption.leftPadding + (getWidth() - mBookViewOption.leftPadding
-                    - mBookViewOption.rightPadding - mTitlePaint.measureText(mBook.name)) / 2);
+            int x = (int) (mBookViewOption.leftPadding + (getWidth() - mBookViewOption.leftPadding - mBookViewOption.rightPadding - mTitlePaint.measureText(mBook.name)) / 2);
             canvas.drawText(mBook.name, x, y, mTitlePaint);
         }
 
@@ -393,6 +430,7 @@ public class BookView extends View {
                                 drawPage(mCurrCanvas, mPageList.get(mPageIndex));
                             }
 
+                            reset();
                             invalidate();
 
                             if (mOnLoadPageListener != null) {
@@ -427,6 +465,7 @@ public class BookView extends View {
                                 drawPage(mCurrCanvas, mPageList.get(mPageIndex));
                             }
 
+                            reset();
                             invalidate();
 
                             if (mOnLoadPageListener != null) {
@@ -470,7 +509,7 @@ public class BookView extends View {
                                 drawPage(mCurrCanvas, null);
                             }
 
-                            mTouch.set(-1, -1);
+                            reset();
                             invalidate();
 
                             if (mOnLoadPageListener != null) {
@@ -518,7 +557,7 @@ public class BookView extends View {
                                 drawPage(mNextCanvas, null);
                             }
 
-                            mTouch.set(-1, -1);
+                            reset();
                             invalidate();
 
                             if (mOnLoadPageListener != null) {
@@ -579,7 +618,7 @@ public class BookView extends View {
 
             x = event.getX();
             y = event.getY();
-            if (Math.abs(x - mTouch.x) > 10) {
+            if (Math.abs(x - mTouch.x) > 20) {
                 if (mLastEvent == MotionEvent.ACTION_DOWN) {
                     mLastEvent = MotionEvent.ACTION_MOVE;
                     calcCornerXY(x - mTouch.x, y);
@@ -593,6 +632,7 @@ public class BookView extends View {
 
                         if (!drawPrePage()) {
                             mIgnoreTouchEvent = true;
+                            reset();
                             return false;
                         }
                         invalidate();
@@ -605,6 +645,7 @@ public class BookView extends View {
                         }
                         if (!drawNextPage()) {
                             mIgnoreTouchEvent = true;
+                            reset();
                             return false;
                         }
                         invalidate();
@@ -628,8 +669,7 @@ public class BookView extends View {
 
             if (mLastEvent == MotionEvent.ACTION_DOWN) {
                 // on center click
-                if (mOnCenterClickListener != null && x > getWidth() / 3 && x < getWidth() * 2 / 3
-                        && y > getHeight() / 3 && y < getHeight() * 2 / 3) {
+                if (mOnCenterClickListener != null && x > getWidth() / 3 && x < getWidth() * 2 / 3 && y > getHeight() / 3 && y < getHeight() * 2 / 3) {
                     mOnCenterClickListener.onCenterClick();
                     mIgnoreTouchEvent = true;
                     reset();
@@ -647,6 +687,7 @@ public class BookView extends View {
 
                     if (!drawPrePage()) {
                         mIgnoreTouchEvent = true;
+                        reset();
                         return false;
                     }
                 } else if (mCornerX == getWidth()) {
@@ -658,6 +699,7 @@ public class BookView extends View {
                     }
                     if (!drawNextPage()) {
                         mIgnoreTouchEvent = true;
+                        reset();
                         return false;
                     }
                 }
@@ -967,11 +1009,9 @@ public class BookView extends View {
 
         int hmg = (int) Math.hypot(mBezierControl2.x, temp);
         if (hmg > maxLength)
-            mCurrentPageShadow.setBounds((int) (mBezierControl2.x - 25) - hmg, leftx,
-                    (int) (mBezierControl2.x + maxLength) - hmg, rightx);
+            mCurrentPageShadow.setBounds((int) (mBezierControl2.x - 25) - hmg, leftx, (int) (mBezierControl2.x + maxLength) - hmg, rightx);
         else
-            mCurrentPageShadow.setBounds((int) (mBezierControl2.x - maxLength), leftx, (int) (mBezierControl2.x),
-                    rightx);
+            mCurrentPageShadow.setBounds((int) (mBezierControl2.x - maxLength), leftx, (int) (mBezierControl2.x), rightx);
 
         mCurrentPageShadow.draw(canvas);
         canvas.restore();
@@ -1056,6 +1096,12 @@ public class BookView extends View {
             return null;
         }
         int end = mPageList.get(0).start;
+        if (end <= 0) {
+            return null;
+        } else if (end > mBookSize) {
+            end = mBookSize;
+        }
+
         int length = READ_BUFFER_LENGTH;
         int start = end - length;
         if (start < 0) {
@@ -1076,10 +1122,18 @@ public class BookView extends View {
     // 向后读若干页
     private List<Page> readNextPages() {
         int start = 0;
+
         if (mPageList != null && mPageList.size() > 0) {
             Page lastPage = mPageList.get(mPageList.size() - 1);
             start = lastPage.end;
         }
+
+        if (start < 0) {
+            start = 0;
+        } else if (start >= mBookSize) {
+            return null;
+        }
+
         int length = READ_BUFFER_LENGTH;
         if (start + length > mBookSize) {
             length = mBookSize - start;
@@ -1116,8 +1170,7 @@ public class BookView extends View {
         }
 
         mTextPaint.setTextSize(mBookViewOption.textSize);
-        mLineCount = (height - mBookViewOption.topPadding - mBookViewOption.bottomPadding - mBookViewOption.titleTextSize * 2)
-                / (mBookViewOption.textSize + mBookViewOption.lineSpace);
+        mLineCount = (height - mBookViewOption.topPadding - mBookViewOption.bottomPadding - mBookViewOption.titleTextSize * 2) / (mBookViewOption.textSize + mBookViewOption.lineSpace);
 
         int length = buffer.length();
         int index = 0;
@@ -1147,8 +1200,7 @@ public class BookView extends View {
 
             i = 0;
             while (i < paragraph.length()) {
-                int size = mTextPaint.breakText(paragraph, i, paragraph.length(), true, (width
-                        - mBookViewOption.leftPadding - mBookViewOption.rightPadding), null);
+                int size = mTextPaint.breakText(paragraph, i, paragraph.length(), true, (width - mBookViewOption.leftPadding - mBookViewOption.rightPadding), null);
                 // if size <= offset at first time, the end index will be error
                 if (size <= 0) {
                     size = 1;

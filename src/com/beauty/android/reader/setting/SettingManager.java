@@ -48,4 +48,13 @@ public class SettingManager {
         return BOOK_KEY_BASE + bookId;
     }
 
+    public void setIsLightTheme(boolean light) {
+        mEditor.putBoolean("light_theme", light);
+        mEditor.commit();
+    }
+
+    public boolean isLightTheme() {
+        return mSharedPreferences.getBoolean("light_theme", true);
+    }
+
 }

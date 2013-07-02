@@ -3,10 +3,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
+    <LinearLayout
+        android:id="@+id/adLayout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center_horizontal" >
+    </LinearLayout>
+
     <com.beauty.android.reader.view.BookView
         android:id="@+id/book_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_above="@id/adLayout"
+        android:layout_alignParentTop="true" />
 
     <RelativeLayout
         android:id="@+id/setting"
@@ -20,7 +30,8 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_alignParentTop="true"
-            android:background="@drawable/title_bg" >
+            android:background="@drawable/menu_bg"
+            android:clickable="true" >
 
             <ImageView
                 android:id="@+id/back"
@@ -31,6 +42,14 @@
                 android:src="@drawable/menu_back" />
 
             <ImageView
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@id/back"
+                android:scaleType="center"
+                android:src="@drawable/ic_vertical_line" />
+
+            <ImageView
                 android:id="@+id/day_or_night"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
@@ -38,7 +57,53 @@
                 android:layout_centerVertical="true"
                 android:scaleType="center"
                 android:src="@drawable/menu_night" />
+
+            <ImageView
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_centerVertical="true"
+                android:layout_toLeftOf="@id/day_or_night"
+                android:scaleType="center"
+                android:src="@drawable/ic_vertical_line" />
         </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/seek_rl"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_alignParentBottom="true"
+            android:background="@drawable/menu_bg"
+            android:clickable="true" >
+
+            <SeekBar
+                android:id="@+id/seek_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
+                android:max="100"
+                android:paddingBottom="5dp"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="5dp"
+                android:progress="0"
+                android:progressDrawable="@drawable/seekbar_progress_drawable"
+                android:thumb="@drawable/seekbar_thumb"
+                android:thumbOffset="3dp" />
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/progress_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@id/seek_rl"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="20dp"
+            android:background="#666666"
+            android:gravity="center"
+            android:textColor="#AAAAAA"
+            android:textSize="20sp" />
     </RelativeLayout>
 
     <RelativeLayout

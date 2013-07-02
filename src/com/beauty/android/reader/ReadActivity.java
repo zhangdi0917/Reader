@@ -1,8 +1,14 @@
 package com.beauty.android.reader;
 
-import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.HashMap;
+
+import net.youmi.android.banner.AdSize;
+import net.youmi.android.banner.AdView;
+import net.youmi.android.spot.SpotManager;
 
 import com.beauty.android.reader.setting.SettingManager;
+import com.beauty.android.reader.utils.NetworkManager;
 import com.beauty.android.reader.view.Book;
 import com.beauty.android.reader.view.BookView;
 import com.beauty.android.reader.view.BookView.OnCenterClickListener;
@@ -24,11 +30,17 @@ import android.view.WindowManager;
 import android.view.View.OnClickListener;
 import android.view.Window;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
 
 public class ReadActivity extends Activity implements OnClickListener {
 
     public static final String INTENT_EXTRA_BOOK = "extra_book";
+
+    public static final int SHOW_SPOT_AD_DELAY = 5 * 60 * 1000;
 
     private BookView mBookView;
 
@@ -45,6 +57,12 @@ public class ReadActivity extends Activity implements OnClickListener {
     private View mLoadingView;
 
     private ProgressBar mProgressBar;
+
+    private SeekBar mSeekBar;
+
+    private TextView mSeekHintText;
+
+    private int mCurrProgress = 0;
 
     private boolean mLight = true;
 
@@ -68,6 +86,21 @@ public class ReadActivity extends Activity implements OnClickListener {
 
         setContentView(R.layout.activity_read);
 
+        // 实例化广告条
+        AdView adView = new AdView(this, AdSize.SIZE_320x50);
+        // 获取要嵌入广告条的布局
+        LinearLayout adLayout = (LinearLayout) findViewById(R.id.adLayout);
+        // 将广告条加入到布局中
+        adLayout.addView(adView);
+
+        // 展示插播广告
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                SpotManager.getInstance(getApplicationContext()).showSpotAds(ReadActivity.this);
+            }
+        }, SHOW_SPOT_AD_DELAY);
+
         mSettingView = findViewById(R.id.setting);
         mSettingView.setOnClickListener(this);
 
@@ -79,13 +112,22 @@ public class ReadActivity extends Activity implements OnClickListener {
         mLoadingView = findViewById(R.id.loading_rl);
         mProgressBar = (ProgressBar) findViewById(R.id.progressbar);
 
+        mSeekBar = (SeekBar) findViewById(R.id.seek_bar);
+        mSeekBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
+
+        mSeekHintText = (TextView) findViewById(R.id.progress_hint);
+
         mBook = getIntent().getParcelableExtra(INTENT_EXTRA_BOOK);
 
         if (mBook == null) {
             finish();
         }
 
-        MobclickAgent.onEvent(this, "read", mBook.name);
+        boolean hasNetwork = NetworkManager.isConnectionAvailable(this);
+        HashMap<String, String> extras = new HashMap<String, String>();
+        extras.put("book", mBook.name);
+        extras.put("network", hasNetwork ? "network" : "none");
+        MobclickAgent.onEvent(this, "read", extras);
 
         int start = SettingManager.getInstance().getLastReadIndex(mBook.id);
         mBookView = (BookView) findViewById(R.id.book_view);
@@ -96,18 +138,11 @@ public class ReadActivity extends Activity implements OnClickListener {
         float density = getResources().getDisplayMetrics().density;
         mBookViewOption.transToPixel(density);
 
-        mLight = true;
         mLightBgBm = BitmapFactory.decodeResource(getResources(), R.drawable.background_1);
-        mBookViewOption.bgBm = mLightBgBm;
-        mBookViewOption.textColor = mLightTextColor;
-        mBookViewOption.bgColor = mLightBgColor;
-        setScreenBrightness(255);
+        mLight = SettingManager.getInstance().isLightTheme();
+        changeTheme(mLight);
 
-        try {
-            mBookView.openBook(mBook, start);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        mBookView.openBook(mBook, start);
 
         PowerManager powerManager = (PowerManager) this.getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "My Lock");
@@ -147,7 +182,53 @@ public class ReadActivity extends Activity implements OnClickListener {
         @Override
         public void onCenterClick() {
             mSettingView.setVisibility(View.VISIBLE);
+            mSeekHintText.setVisibility(View.INVISIBLE);
+            mSeekBar.setVisibility(View.VISIBLE);
+            int progress = mBookView.getCurrReadIndex() * mSeekBar.getMax() / mBookView.getBookSize();
+            mSeekBar.setProgress(progress);
         }
+    };
+
+    private OnSeekBarChangeListener mOnSeekBarChangeListener = new OnSeekBarChangeListener() {
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            mCurrProgress = progress;
+
+            float fPercent = (float) (progress * 1.0 / seekBar.getMax());
+            DecimalFormat df = new DecimalFormat("#0.0");
+            String strPercent = "位于全书的" + df.format(fPercent * 100) + "%处";
+            mSeekHintText.setText(strPercent);
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            float fPercent = (float) (seekBar.getProgress() * 1.0 / seekBar.getMax());
+            DecimalFormat df = new DecimalFormat("#0.0");
+            String strPercent = "位于全书的" + df.format(fPercent * 100) + "%处";
+            mSeekHintText.setVisibility(View.VISIBLE);
+            mSeekHintText.setText(strPercent);
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            int offset = mBookView.getBookSize() * mCurrProgress / seekBar.getMax();
+            if (offset >= mBookView.getBookSize()) {
+                offset = mBookView.getBookSize() - 1;
+            }
+            mBookView.seekTo(offset);
+
+            mHandler.postDelayed(new Runnable() {
+
+                @Override
+                public void run() {
+                    if (mSeekHintText != null) {
+                        mSeekHintText.setVisibility(View.INVISIBLE);
+                    }
+                }
+            }, 1000);
+        }
+
     };
 
     @Override
@@ -175,13 +256,25 @@ public class ReadActivity extends Activity implements OnClickListener {
         if (mBook != null) {
             SettingManager.getInstance().setLastReadIndex(mBook.id, mBookView.getCurrReadIndex());
         }
+
+        if (mHandler != null) {
+            mHandler.removeCallbacksAndMessages(null);
+        }
+
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
         case R.id.day_or_night:
-            changeDayOrNight();
+            if (mLight) {
+                mLight = false;
+            } else {
+                mLight = true;
+            }
+            changeTheme(mLight);
+            mBookView.redraw();
+            SettingManager.getInstance().setIsLightTheme(mLight);
             break;
         case R.id.back:
             finish();
@@ -194,28 +287,22 @@ public class ReadActivity extends Activity implements OnClickListener {
         }
     }
 
-    private void changeDayOrNight() {
-        if (mLight) {
-            mLight = false;
+    private void changeTheme(boolean light) {
+        if (!light) {
             mBookViewOption.bgColor = mDarkBgColor;
             mBookViewOption.bgBm = null;
             mBookViewOption.textColor = mDarkTextColor;
             mBookViewOption.titleTextColor = mDarkTitleColor;
-            mBookView.redraw();
 
             setScreenBrightness(50);
-
             mDayNightView.setImageResource(R.drawable.menu_day);
         } else {
-            mLight = true;
             mBookViewOption.bgColor = mLightBgColor;
             mBookViewOption.bgBm = mLightBgBm;
             mBookViewOption.textColor = mLightTextColor;
             mBookViewOption.titleTextColor = mLightTitleColor;
-            mBookView.redraw();
 
             setScreenBrightness(255);
-
             mDayNightView.setImageResource(R.drawable.menu_night);
         }
     }
